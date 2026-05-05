@@ -1,83 +1,76 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tamil Game Dev</title>
-    <style>
-        body { margin: 0; text-align: center; font-family: sans-serif; background: #f0f0f0; overflow: hidden; }
-        canvas { background: #fff; border-bottom: 5px solid #333; display: block; margin: 0 auto; }
-        .info { padding: 10px; font-size: 20px; }
-    </style>
-</head>
-<body>
+import pygame
+import random
 
-    <div class="info">Score: <span id="score">0</span></div>
-    <canvas id="gameCanvas"></canvas>
+# 1. Initialization
+pygame.init()
 
-    <script>
-        const canvas = document.getElementById("gameCanvas");
-        const ctx = canvas.getContext("2d");
-        const scoreElement = document.getElementById("score");
+# Screen dimensions
+SCREEN_WIDTH = 800
+SCREEN_HEIGHT = 600
+screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
+pygame.display.set_caption("Knight Racing")
 
-        canvas.width = window.innerWidth;
-        canvas.height = 400;
+# Colors
+WHITE = (255, 255, 255)
+RED = (200, 0, 0)
+BLACK = (0, 0, 0)
 
-        let score = 0;
-        let player = { x: 50, y: 350, w: 40, h: 40, dy: 0, jumpPower: -12, gravity: 0.6, grounded: true };
-        let obstacles = [];
-        let gameSpeed = 5;
+# Game Speed
+clock = pygame.time.Clock()
 
-        // Jump control
-        window.addEventListener("touchstart", () => { if(player.grounded) { player.dy = player.jumpPower; player.grounded = false; } });
-        window.addEventListener("keydown", (e) => { if(e.code === "Space" && player.grounded) { player.dy = player.jumpPower; player.grounded = false; } });
+# 2. Player (Knight) Setup
+knight_width = 50
+knight_height = 60
+knight_x = SCREEN_WIDTH // 2
+knight_y = SCREEN_HEIGHT - 100
+knight_speed = 7
 
-        function spawnObstacle() {
-            let size = Math.random() * 30 + 20;
-            obstacles.push({ x: canvas.width, y: 390 - size, w: 20, h: size });
-        }
+# 3. Obstacles
+obs_width = 50
+obs_height = 50
+obs_x = random.randrange(0, SCREEN_WIDTH - obs_width)
+obs_y = -600
+obs_speed = 5
 
-        let frame = 0;
-        function update() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            
-            // Player Physics
-            player.dy += player.gravity;
-            player.y += player.dy;
-            if (player.y > 350) { player.y = 350; player.dy = 0; player.grounded = true; }
+score = 0
 
-            // Draw Player
-            ctx.fillStyle = "#FF5733";
-            ctx.fillRect(player.x, player.y, player.w, player.h);
+# Main Game Loop
+running = True
+while running:
+    screen.fill(WHITE) # Clear screen with white
 
-            // Obstacles
-            if (frame % 100 === 0) spawnObstacle();
-            for (let i = obstacles.length - 1; i >= 0; i--) {
-                let o = obstacles[i];
-                o.x -= gameSpeed;
-                ctx.fillStyle = "#333";
-                ctx.fillRect(o.x, o.y, o.w, o.h);
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            running = False
 
-                // Collision Detection
-                if (player.x < o.x + o.w && player.x + player.w > o.x && player.y < o.y + o.h && player.y + player.h > o.y) {
-                    alert("Game Over! Score: " + score);
-                    score = 0;
-                    obstacles = [];
-                    gameSpeed = 5;
-                }
+    # 4. Controls
+    keys = pygame.key.get_pressed()
+    if keys[pygame.K_LEFT] and knight_x > 0:
+        knight_x -= knight_speed
+    if keys[pygame.K_RIGHT] and knight_x < SCREEN_WIDTH - knight_width:
+        knight_x += knight_speed
 
-                if (o.x + o.w < 0) {
-                    obstacles.splice(i, 1);
-                    score++;
-                    gameSpeed += 0.1;
-                }
-            }
+    # 5. Obstacle Movement
+    obs_y += obs_speed
+    if obs_y > SCREEN_HEIGHT:
+        obs_y = 0 - obs_height
+        obs_x = random.randrange(0, SCREEN_WIDTH - obs_width)
+        score += 1
+        obs_speed += 0.2 # Difficulty increases over time
 
-            scoreElement.innerText = score;
-            frame++;
-            requestAnimationFrame(update);
-        }
+    # 6. Collision Detection
+    knight_rect = pygame.Rect(knight_x, knight_y, knight_width, knight_height)
+    obs_rect = pygame.Rect(obs_x, obs_y, obs_width, obs_height)
 
-        update();
-    </script>
-</body>
-</html>
+    if knight_rect.colliderect(obs_rect):
+        print(f"Game Over! Your Score: {score}")
+        running = False
+
+    # Drawing the characters
+    pygame.draw.rect(screen, BLACK, knight_rect) # The Player
+    pygame.draw.rect(screen, RED, obs_rect)      # The Obstacle
+
+    pygame.display.update()
+    clock.tick(60)
+
+pygame.quit()
